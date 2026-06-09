@@ -1,11 +1,8 @@
 import { McpServer, ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
-import fetch from "node-fetch";
+import { getRandomQuotes } from "./data.js";
 
-const GOT_API_BASE = "https://api.gameofthronesquotes.xyz/v1";
-
-// Type definitions for the Game of Thrones API response
 interface Quote {
   sentence: string;
   character: Character;
@@ -22,25 +19,6 @@ interface House {
   slug: string;
 }
 
-// Function to fetch random quotes from the Game of Thrones API
-async function fetchRandomQuotes(count: number): Promise<Quote[]> {
-  if (count <= 0) {
-    throw new Error("count must be a positive number");
-  }
-  if (count > 10) {
-    throw new Error("maximum number of quotes is 10");
-  }
-
-  const url = `${GOT_API_BASE}/random/${count}`;
-  const response = await fetch(url);
-
-  if (!response.ok) {
-    throw new Error(`Error fetching quotes: ${response.statusText}`);
-  }
-
-  return await response.json() as Quote[];
-}
-
 // Function to format a quote into a readable string
 function formatQuote(quote: Quote): string {
   return `
@@ -50,15 +28,19 @@ House: ${quote.character.house.name}`;
 }
 
 // Create an MCP server
-const server = new McpServer({
-  name: "Game of Thrones Quotes",
-  version: "1.0.0",
-  capabilities: {
-    resources: { listChanged: true },
-    tools: {},
-    prompts: {}
+const server = new McpServer(
+  {
+    name: "Game of Thrones Quotes",
+    version: "1.0.0",
+  },
+  {
+    capabilities: {
+      resources: { listChanged: true },
+      tools: {},
+      prompts: {}
+    }
   }
-});
+);
 
 // Add get_random_quotes tool
 server.tool(
@@ -80,8 +62,7 @@ server.tool(
         };
       }
 
-      // Fetch quotes from API
-      const quotes = await fetchRandomQuotes(count);
+      const quotes = getRandomQuotes(count) as Quote[];
 
       // Format quotes
       const formattedQuotes = quotes.map(formatQuote);
@@ -144,8 +125,7 @@ server.resource(
   "got://quotes/random",
   async (uri) => {
     try {
-      // Fetch 5 random quotes
-      const quotes = await fetchRandomQuotes(5);
+      const quotes = getRandomQuotes(5) as Quote[];
 
       // Format quotes
       const formattedQuotes = quotes.map(formatQuote);
@@ -216,8 +196,7 @@ server.prompt(
   { theme: z.string().optional() },
   async ({ theme }) => {
     try {
-      // Fetch 5 random quotes
-      const quotes = await fetchRandomQuotes(5);
+      const quotes = getRandomQuotes(5) as Quote[];
 
       // Format quotes
       const formattedQuotes = quotes.map(formatQuote);
